@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 > NUL
+cd /d "%~dp0"
 title ERREJOTA MATRIX - PUBLICAR ATUALIZAÇÃO NO GITHUB
 color 0A
 
@@ -10,7 +11,7 @@ echo.
 
 :: 1. Compila o projeto em modo Release Standalone
 echo [1/4] Compilando versao final standalone (Single-File)...
-dotnet publish -c Release
+dotnet publish ErrejotaMatrixOptimizer.csproj -c Release
 if %errorlevel% neq 0 (
     echo.
     echo [ERRO] Falha na compilacao. Verifique se o aplicativo esta fechado e tente novamente.
@@ -34,8 +35,9 @@ echo.
 
 :: 3. Solicitar mensagem de atualizacao
 echo [3/4] Preparando commit de atualizacao...
-set /p COMMIT_MSG="Digite a descricao da atualizacao (ou Enter para padrao): "
-if "%COMMIT_MSG%"=="" set COMMIT_MSG="Atualizacao ErreJota Matrix Optimizer Pro v1.0.0"
+set "COMMIT_MSG="
+set /p "COMMIT_MSG=Digite a descricao da atualizacao (ou Enter para padrao): "
+if not defined COMMIT_MSG set "COMMIT_MSG=Atualizacao ErreJota Matrix Optimizer Pro v1.0.0"
 
 git add .
 git commit -m "%COMMIT_MSG%"
