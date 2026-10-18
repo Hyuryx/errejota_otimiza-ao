@@ -1,0 +1,12 @@
+# Build e pastas temporarias do compilador
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Executavel local (maior que 100MB, deve ser hospedado em GitHub Releases)
+*.exe.new
+*.exe.old
+ErreJota_Matrix_Optimizer_Pro.exe

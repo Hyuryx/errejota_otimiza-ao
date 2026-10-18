@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>icon\app.ico</ApplicationIcon>
+    <AssemblyName>ErreJota_Matrix_Optimizer_Pro</AssemblyName>
+    <RootNamespace>ErrejotaMatrixOptimizer</RootNamespace>
+    <Title>ERREJOTA MATRIX OPTIMIZER PRO</Title>
+    <Company>ERREJOTA</Company>
+    <Product>ErreJota Matrix Optimizer Pro</Product>
+    <Copyright>© 2026 ERREJOTA. Todos os direitos reservados.</Copyright>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="icon\app.ico" />
+    <Resource Include="icon\1.png" />
+  </ItemGroup>
+
+  <Target Name="CopyExecutableToRoot" AfterTargets="Publish">
+    <Copy SourceFiles="$(PublishDir)$(AssemblyName).exe" DestinationFolder="$(MSBuildProjectDirectory)" OverwriteReadOnlyFiles="true" />
+  </Target>
+
+</Project>
