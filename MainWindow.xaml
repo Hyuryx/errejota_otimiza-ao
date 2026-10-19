@@ -205,6 +205,87 @@
             </Setter>
         </Style>
 
+        <!-- ESTILO COMBOBOX MATRIX DARK TOTAL -->
+        <Style x:Key="CheatComboBox" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="#080C14"/>
+            <Setter Property="BorderBrush" Value="#1F293D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton" 
+                                          Focusable="False" 
+                                          IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                          ClickMode="Press">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Border" Background="#080C14" BorderBrush="#1F293D" BorderThickness="1" CornerRadius="5">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="32"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Path Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                                      Data="M 0 0 L 4 4 L 8 0 Z" Fill="#00FF66"/>
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Border" Property="BorderBrush" Value="#00FF66"/>
+                                                <Setter TargetName="Border" Property="Background" Value="#0D1422"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <ContentPresenter Name="ContentSite" 
+                                              IsHitTestVisible="False" 
+                                              Content="{TemplateBinding SelectionBoxItem}" 
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" 
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" 
+                                              Margin="12,0,32,0" 
+                                              VerticalAlignment="Center" 
+                                              HorizontalAlignment="Left"/>
+
+                            <Popup Name="Popup" 
+                                   Placement="Bottom" 
+                                   IsOpen="{TemplateBinding IsDropDownOpen}" 
+                                   AllowsTransparency="True" 
+                                   Focusable="False" 
+                                   PopupAnimation="Slide">
+                                <Grid Name="DropDown" 
+                                      SnapsToDevicePixels="True" 
+                                      MinWidth="{TemplateBinding ActualWidth}" 
+                                      MaxHeight="260">
+                                    <Border x:Name="DropDownBorder" 
+                                            Background="#080C14" 
+                                            BorderBrush="#1F293D" 
+                                            BorderThickness="1" 
+                                            CornerRadius="5" 
+                                            Margin="0,2,0,0">
+                                        <ScrollViewer Margin="2" SnapsToDevicePixels="True">
+                                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="DropDownBorder" Property="MinHeight" Value="60"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ESTILO ITEM MENU LATERAL -->
         <Style x:Key="SidebarNavButton" TargetType="RadioButton">
             <Setter Property="Background" Value="Transparent"/>
@@ -749,24 +830,16 @@
                     <StackPanel>
                         <!-- Banner Superior: Lançador Gamer Pro -->
                         <Border Background="#0C1522" BorderBrush="#00FF66" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center">
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                        <TextBlock Text="🎮 LANÇADOR GAMER PRO &amp; SENTINELA ZEN 3 CCD0" FontSize="15" FontWeight="Bold" Foreground="#00FF66"/>
-                                        <Border Background="#102E1B" BorderBrush="#00FF66" BorderThickness="1" CornerRadius="3" Padding="6,1" Margin="10,0,0,0">
-                                            <TextBlock Text="ZERO LATÊNCIA" FontSize="9" FontWeight="Bold" Foreground="#00FF66"/>
-                                        </Border>
-                                    </StackPanel>
-                                    <TextBlock Text="Inicia qualquer jogo da Steam, Epic Games ou executável personalizado com esvaziamento total de cache da RAM, afinidade travada no CCD0 (32MB L3) e prioridade competitiva instantânea." 
-                                               FontSize="11" Foreground="#8B949E" TextWrapping="Wrap" Margin="0,0,16,0"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <TextBlock Text="🎮 LANÇADOR GAMER PRO (ZERO CACHE &amp; COMPETITIVO)" FontSize="15" FontWeight="Bold" Foreground="#00FF66"/>
+                                    <Border Background="#102E1B" BorderBrush="#00FF66" BorderThickness="1" CornerRadius="3" Padding="6,1" Margin="10,0,0,0">
+                                        <TextBlock Text="ALTA PERFORMANCE" FontSize="9" FontWeight="Bold" Foreground="#00FF66"/>
+                                    </Border>
                                 </StackPanel>
-                                
-                                <Button Grid.Column="1" Content="⚡ INICIAR FIVEM DIRETO" Style="{StaticResource CheatCyanButton}" FontSize="12" FontWeight="Bold" Padding="16,10" Click="BtnLaunchFivem_Click"/>
-                            </Grid>
+                                <TextBlock Text="Selecione o jogo desejado (Steam, Epic Games, FiveM ou .exe customizado), marque as otimizações e clique em 'Disparar Jogo Otimizado' para iniciar com Cache Zero e Afinidade CCD0." 
+                                           FontSize="11" Foreground="#8B949E" TextWrapping="Wrap"/>
+                            </StackPanel>
                         </Border>
 
                         <!-- Card de Seleção de Jogo -->
@@ -783,9 +856,7 @@
                                 </Grid>
 
                                 <!-- Dropdown de Jogos com Fundo Escuro Neon -->
-                                <ComboBox x:Name="CboDetectedGames" Height="38" FontSize="12" FontWeight="SemiBold" 
-                                          Background="#090E17" Foreground="#00FF66" BorderBrush="#1F293D" BorderThickness="1" 
-                                          Padding="8,6" Margin="0,0,0,12" SelectionChanged="CboDetectedGames_SelectionChanged">
+                                <ComboBox x:Name="CboDetectedGames" Style="{StaticResource CheatComboBox}" Margin="0,0,0,12" SelectionChanged="CboDetectedGames_SelectionChanged">
                                     <ComboBox.Resources>
                                         <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#080C14"/>
                                         <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#00FF66"/>
