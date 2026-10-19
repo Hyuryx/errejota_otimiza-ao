@@ -261,7 +261,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="ERREJOTA // MATRIX OPTIMIZER PRO" FontWeight="Bold" FontSize="14" Foreground="#00FF66"/>
                             <Border Background="#102619" BorderBrush="#00FF66" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="v1.1.0" FontSize="9" FontWeight="Bold" Foreground="#00FF66"/>
+                                <TextBlock x:Name="TxtHeaderVersion" Text="v1.1.0" FontSize="9" FontWeight="Bold" Foreground="#00FF66"/>
                             </Border>
                         </StackPanel>
                         <TextBlock Text="ELITE GAMER KERNEL &amp; ANTI-GARGALO ENGINE" FontSize="10" Foreground="#8B949E"/>
@@ -782,10 +782,54 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <!-- Dropdown de Jogos -->
-                                <ComboBox x:Name="CboDetectedGames" Height="36" FontSize="12" FontWeight="SemiBold" 
-                                          Background="#0A0E17" Foreground="#00FF66" BorderBrush="#1F293D" BorderThickness="1" 
-                                          Padding="8,6" Margin="0,0,0,12" SelectionChanged="CboDetectedGames_SelectionChanged"/>
+                                <!-- Dropdown de Jogos com Fundo Escuro Neon -->
+                                <ComboBox x:Name="CboDetectedGames" Height="38" FontSize="12" FontWeight="SemiBold" 
+                                          Background="#090E17" Foreground="#00FF66" BorderBrush="#1F293D" BorderThickness="1" 
+                                          Padding="8,6" Margin="0,0,0,12" SelectionChanged="CboDetectedGames_SelectionChanged">
+                                    <ComboBox.Resources>
+                                        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#080C14"/>
+                                        <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#00FF66"/>
+                                    </ComboBox.Resources>
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem">
+                                            <Setter Property="Background" Value="#090E17"/>
+                                            <Setter Property="Foreground" Value="#00FF66"/>
+                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                            <Setter Property="BorderBrush" Value="#131C2A"/>
+                                            <Setter Property="Padding" Value="10,8"/>
+                                            <Setter Property="Cursor" Value="Hand"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ComboBoxItem">
+                                                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsHighlighted" Value="True">
+                                                                <Setter TargetName="Bd" Property="Background" Value="#122438"/>
+                                                                <Setter Property="Foreground" Value="#00E5FF"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter TargetName="Bd" Property="Background" Value="#0B2A19"/>
+                                                                <Setter Property="Foreground" Value="#00FF66"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="2,1">
+                                                <Border Background="#142132" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="3" Padding="5,1" Margin="0,0,8,0">
+                                                    <TextBlock Text="{Binding Platform}" FontSize="9" FontWeight="Bold" Foreground="#00E5FF"/>
+                                                </Border>
+                                                <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
 
                                 <!-- Card com Detalhes do Jogo Selecionado e Configurações -->
                                 <Border Background="#090D14" BorderBrush="#1C273B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
@@ -1052,7 +1096,7 @@
             <Grid>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                     <TextBlock Text="VERSÃO: " FontSize="10" FontWeight="Bold" Foreground="#4B5563" VerticalAlignment="Center"/>
-                    <TextBlock Text="1.0.0 (Release)" FontSize="10" FontWeight="Bold" Foreground="#00FF66" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtFooterVersion" Text="1.1.0 (Release)" FontSize="10" FontWeight="Bold" Foreground="#00FF66" Margin="0,0,12,0" VerticalAlignment="Center"/>
                     <Button Content="VERIFICAR ATUALIZAÇÕES" Style="{StaticResource CheatCyanButton}" Padding="8,2" FontSize="9" Height="20" Click="BtnCheckUpdates_Click"/>
                 </StackPanel>
                 <TextBlock Text="© 2026 ERREJOTA. Todos os direitos reservados." 

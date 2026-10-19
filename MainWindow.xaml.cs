@@ -50,7 +50,11 @@ namespace ErrejotaMatrixOptimizer
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            AppendLog("⚡ INICIANDO ERREJOTA MATRIX OPTIMIZER PRO v1.1.0...");
+            string verStr = UpdateManager.CurrentVersion.ToString(3);
+            TxtHeaderVersion.Text = $"v{verStr}";
+            TxtFooterVersion.Text = $"{verStr} (Release)";
+
+            AppendLog($"⚡ INICIANDO ERREJOTA MATRIX OPTIMIZER PRO v{verStr}...");
             AppendLog("Varrendo hardware, integridade de rede 1 Gbps, jogos instalados e subsistemas...");
             await RefreshHardwareDataAsync();
             await LoadDetectedGamesAsync();
@@ -1139,10 +1143,11 @@ namespace ErrejotaMatrixOptimizer
 
         private async void BtnApplyUpdateNow_Click(object sender, RoutedEventArgs e)
         {
-            if (_pendingUpdate == null || string.IsNullOrWhiteSpace(_pendingUpdate.DownloadUrl))
+            if (_pendingUpdate == null) return;
+
+            if (string.IsNullOrWhiteSpace(_pendingUpdate.DownloadUrl))
             {
-                MessageBox.Show("Link de download da atualização não configurado no version.json.", "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                _pendingUpdate.DownloadUrl = $"https://github.com/Hyuryx/errejota_otimiza-ao/releases/download/v{_pendingUpdate.Version}/ErreJota_Matrix_Optimizer_Pro.exe";
             }
 
             BtnApplyUpdateNow.IsEnabled = false;

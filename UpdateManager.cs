@@ -5,14 +5,28 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
+using System.Text.Json.Serialization;
+
 namespace ErrejotaMatrixOptimizer
 {
     public class UpdateInfo
     {
+        [JsonPropertyName("version")]
         public string Version { get; set; } = "1.0.0";
+
+        [JsonPropertyName("release_date")]
         public string ReleaseDate { get; set; } = "";
+
+        [JsonPropertyName("download_url")]
         public string DownloadUrl { get; set; } = "";
+
+        [JsonPropertyName("downloadUrl")]
+        public string DownloadUrlCamel { set { if (string.IsNullOrEmpty(DownloadUrl)) DownloadUrl = value; } }
+
+        [JsonPropertyName("changelog")]
         public string Changelog { get; set; } = "";
+
+        [JsonPropertyName("mandatory")]
         public bool Mandatory { get; set; } = false;
     }
 
@@ -42,6 +56,11 @@ namespace ErrejotaMatrixOptimizer
 
                 if (info != null && Version.TryParse(info.Version, out var remoteVer))
                 {
+                    if (string.IsNullOrWhiteSpace(info.DownloadUrl))
+                    {
+                        info.DownloadUrl = $"https://github.com/Hyuryx/errejota_otimiza-ao/releases/download/v{info.Version}/ErreJota_Matrix_Optimizer_Pro.exe";
+                    }
+
                     if (remoteVer > CurrentVersion)
                     {
                         return info;
