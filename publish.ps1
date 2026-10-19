@@ -38,6 +38,13 @@ Write-Host "====================================================================
 
 # 2. Atualizar version.json e csproj se necessario
 $today = (Get-Date).ToString("dd/MM/yyyy")
+
+# Normalizar versões (SemVer 3 partes e AssemblyVersion exatamente 4 partes)
+$vParts = $targetVer.Trim().TrimStart('v','V').Split('.')
+$semVer = if ($vParts.Count -ge 3) { "$($vParts[0]).$($vParts[1]).$($vParts[2])" } elseif ($vParts.Count -eq 2) { "$($vParts[0]).$($vParts[1]).0" } else { "$($vParts[0]).0.0" }
+$fourParts = if ($vParts.Count -ge 4) { "$($vParts[0]).$($vParts[1]).$($vParts[2]).$($vParts[3])" } else { "$semVer.0" }
+$targetVer = $semVer
+
 if (Test-Path "version.json") {
     try {
         $j = Get-Content "version.json" -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -55,14 +62,20 @@ if (Test-Path "version.json") {
 if (Test-Path "ErrejotaMatrixOptimizer.csproj") {
     try {
         $c = Get-Content "ErrejotaMatrixOptimizer.csproj" -Raw -Encoding UTF8
-        $c = [regex]::Replace($c, '<Version>[^<]+</Version>', "<Version>$targetVer</Version>")
-        $c = [regex]::Replace($c, '<FileVersion>[^<]+</FileVersion>', "<FileVersion>$targetVer.0</FileVersion>")
-        $c = [regex]::Replace($c, '<AssemblyVersion>[^<]+</AssemblyVersion>', "<AssemblyVersion>$targetVer.0</AssemblyVersion>")
+        $c = [regex]::Replace($c, '<Version>[^<]+</Version>', "<Version>$semVer</Version>")
+        $c = [regex]::Replace($c, '<FileVersion>[^<]+</FileVersion>', "<FileVersion>$fourParts</FileVersion>")
+        $c = [regex]::Replace($c, '<AssemblyVersion>[^<]+</AssemblyVersion>', "<AssemblyVersion>$fourParts</AssemblyVersion>")
         [System.IO.File]::WriteAllText("ErrejotaMatrixOptimizer.csproj", $c, [System.Text.Encoding]::UTF8)
-        Write-Host " - ErrejotaMatrixOptimizer.csproj atualizado para v$targetVer" -ForegroundColor Green
+        Write-Host " - ErrejotaMatrixOptimizer.csproj atualizado para v$targetVer (AssemblyVersion: $fourParts)" -ForegroundColor Green
     } catch {
         Write-Host " [AVISO] Nao foi possivel atualizar .csproj: $_" -ForegroundColor Yellow
     }
+}
+
+# Garantir que nenhum processo antigo do painel esteja travando o .exe
+Get-Process -Name "ErreJota_Matrix_Optimizer_Pro" -ErrorAction SilentlyContinue | ForEach-Object {
+    Write-Host " - Fechando processo em execucao que travava o arquivo: $($_.Name) (PID: $($_.Id))" -ForegroundColor Yellow
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host ""
@@ -71,7 +84,7 @@ Write-Host "[1/4] Compilando executavel Standalone Single-File (v$targetVer)..."
 dotnet publish ErrejotaMatrixOptimizer.csproj -c Release
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""
-    Write-Host "[ERRO] Falha na compilacao. Certifique-se de que o ErreJota_Matrix_Optimizer_Pro.exe nao esta em execucao." -ForegroundColor Red
+    Write-Host "[ERRO] Falha na compilacao com codigo $LASTEXITCODE." -ForegroundColor Red
     Read-Host "Pressione Enter para sair..."
     exit $LASTEXITCODE
 }
