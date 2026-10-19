@@ -1,8 +1,8 @@
-﻿{
+{
     "version":  "1.1.0",
     "release_date":  "19/10/2026",
-    "download_url":  "https://github.com/Hyuryx/errejota_otimiza-ao/releases/download/v1.1.0/ErreJota_Matrix_Optimizer_Pro.exe",
-    "downloadUrl":  "https://github.com/Hyuryx/errejota_otimiza-ao/releases/download/v1.1.0/ErreJota_Matrix_Optimizer_Pro.exe",
+    "download_url":  "https://github.com/Hyuryx/errejota_otimiza-ao/releases/download/v1.1.0.0/ErreJota_Matrix_Optimizer_Pro.exe",
+    "downloadUrl":  "https://github.com/Hyuryx/errejota_otimiza-ao/releases/download/v1.1.0.0/ErreJota_Matrix_Optimizer_Pro.exe",
     "changelog":  "• Teste de Velocidade Turbo Multi-Stream (1 Gbps Real de Download e Upload)\n• Lançador Gamer Pro com Suporte a Todos os Jogos (Steam, Epic Games e Custom .EXE)\n• Esvaziamento de Cache de RAM (Zero Cache - Libera 2GB a 6GB)\n• Sentinela Zen 3 CCD0 Universal e Prioridade Alta de CPU\n• Inicialização Segura Bypass de Anti-Cheat (FiveM, Ricochet, BattlEye, EAC)",
     "mandatory":  false
 }
