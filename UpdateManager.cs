@@ -18,7 +18,7 @@ namespace ErrejotaMatrixOptimizer
 
     public class UpdateManager
     {
-        public static readonly Version CurrentVersion = new Version(1, 0, 0);
+        public static readonly Version CurrentVersion = typeof(UpdateManager).Assembly.GetName().Version ?? new Version(1, 0, 0);
 
         // URL padrão oficial no repositório GitHub do ErreJota
         public const string DefaultUpdateUrl = "https://raw.githubusercontent.com/Hyuryx/errejota_otimiza-ao/main/version.json";

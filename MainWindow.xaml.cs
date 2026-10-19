@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -14,13 +15,16 @@ namespace ErrejotaMatrixOptimizer
     {
         private readonly OptimizationEngine _engine = new();
         private readonly UpdateManager _updateManager = new();
+        private readonly GameLauncher _gameLauncher;
         private UpdateInfo? _pendingUpdate = null;
         private HardwareSpecs _specs = new();
         private bool _isBusy = false;
+        private List<InstalledGame> _detectedGames = new();
 
         public MainWindow()
         {
             InitializeComponent();
+            _gameLauncher = new GameLauncher(_engine);
             _engine.OnLog += Engine_OnLog;
             _updateManager.OnDownloadProgress += (downloaded, total, pct) =>
             {
@@ -46,9 +50,10 @@ namespace ErrejotaMatrixOptimizer
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            AppendLog("⚡ INICIANDO ERREJOTA MATRIX OPTIMIZER PRO v1.0.0...");
-            AppendLog("Varrendo hardware, integridade de rede 1 Gbps e subsistemas...");
+            AppendLog("⚡ INICIANDO ERREJOTA MATRIX OPTIMIZER PRO v1.1.0...");
+            AppendLog("Varrendo hardware, integridade de rede 1 Gbps, jogos instalados e subsistemas...");
             await RefreshHardwareDataAsync();
+            await LoadDetectedGamesAsync();
             AppendLog("✅ Sistema pronto. Selecione uma aba e ative os módulos com total segurança.");
         }
 
@@ -878,9 +883,131 @@ namespace ErrejotaMatrixOptimizer
         }
 
         // ==========================================
-        // MÓDULO 4: LANÇADOR FIVEM
+        // MÓDULO 4: LANÇADOR GAMER PRO & FIVEM
         // ==========================================
         private async void BtnLaunchFivem_Click(object sender, RoutedEventArgs e) => await _engine.LaunchFivemOptimizedAsync();
+
+        private async Task LoadDetectedGamesAsync()
+        {
+            try
+            {
+                _detectedGames = await Task.Run(() => _gameLauncher.ScanAllGames());
+                CboDetectedGames.ItemsSource = null;
+                CboDetectedGames.ItemsSource = _detectedGames;
+
+                if (_detectedGames.Count > 0)
+                {
+                    var fav = _detectedGames.FirstOrDefault(g => g.Name.Contains("FiveM", StringComparison.OrdinalIgnoreCase))
+                           ?? _detectedGames.FirstOrDefault(g => g.Name.Contains("Grand Theft Auto", StringComparison.OrdinalIgnoreCase))
+                           ?? _detectedGames[0];
+                    CboDetectedGames.SelectedItem = fav;
+                    UpdateSelectedGameUI(fav);
+                }
+                else
+                {
+                    TxtSelectedGameName.Text = "Nenhum jogo detectado automaticamente";
+                    TxtSelectedGamePath.Text = "Clique em 'ESCOLHER .EXE' para apontar o executável do seu jogo.";
+                    TxtSelectedGamePlatform.Text = "MANUAL";
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[AVISO] Falha ao listar jogos instalados: {ex.Message}");
+            }
+        }
+
+        private void UpdateSelectedGameUI(InstalledGame? game)
+        {
+            if (game != null)
+            {
+                TxtSelectedGameName.Text = game.Name;
+                TxtSelectedGamePath.Text = game.ExePath;
+                TxtSelectedGamePlatform.Text = game.Platform.ToUpper();
+            }
+        }
+
+        private void CboDetectedGames_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CboDetectedGames.SelectedItem is InstalledGame game)
+            {
+                UpdateSelectedGameUI(game);
+            }
+        }
+
+        private async void BtnRefreshGames_Click(object sender, RoutedEventArgs e)
+        {
+            SetBusy(true, "PROCURANDO JOGOS...");
+            try
+            {
+                await LoadDetectedGamesAsync();
+                ShowCheckModal("🎮 BIBLIOTECA DE JOGOS ATUALIZADA", $"Encontrados {_detectedGames.Count} jogos instalados (Steam, Epic Games e FiveM).");
+            }
+            finally { SetBusy(false); }
+        }
+
+        private void BtnBrowseCustomGame_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Executáveis do Jogo (*.exe)|*.exe|Todos os Arquivos (*.*)|*.*",
+                Title = "Selecione o Executável (.exe) do Jogo"
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                string exePath = dlg.FileName;
+                string gameName = Path.GetFileNameWithoutExtension(exePath);
+
+                var newGame = new InstalledGame
+                {
+                    Name = gameName,
+                    ExePath = exePath,
+                    Platform = "Custom"
+                };
+
+                _gameLauncher.SaveCustomGame(newGame);
+                _detectedGames.Insert(0, newGame);
+                CboDetectedGames.ItemsSource = null;
+                CboDetectedGames.ItemsSource = _detectedGames;
+                CboDetectedGames.SelectedItem = newGame;
+                UpdateSelectedGameUI(newGame);
+
+                ShowCheckModal("🎮 JOGO PERSONALIZADO ADICIONADO", $"'{gameName}' foi registrado no Lançador Matrix com sucesso!");
+            }
+        }
+
+        private async void BtnLaunchSelectedGame_Click(object sender, RoutedEventArgs e)
+        {
+            if (CboDetectedGames.SelectedItem is not InstalledGame game)
+            {
+                ShowCheckModal("⚠ SELEÇÃO NECESSÁRIA", "Por favor, selecione um jogo na lista ou clique em 'ESCOLHER .EXE'.");
+                return;
+            }
+
+            bool cleanRam = ChkOptCleanRam.IsChecked == true;
+            bool lockCcd0 = ChkOptLockCcd0.IsChecked == true;
+            bool highPriority = ChkOptHighPriority.IsChecked == true;
+
+            SetBusy(true, "DISPARANDO JOGO OTIMIZADO...");
+            try
+            {
+                bool ok = await _gameLauncher.LaunchGameOptimizedAsync(game, cleanRam, lockCcd0, highPriority);
+                if (ok)
+                {
+                    ShowCheckModal("🚀 JOGO DISPARADO COM SUCESSO!",
+                        $"O jogo '{game.Name}' foi iniciado com as configurações competitivas ativas:\n\n" +
+                        (cleanRam ? "✔ Cache Standby da RAM Esvaziado (2GB a 6GB livres)\n" : "") +
+                        (lockCcd0 ? "✔ Sentinela CCD0 Zen 3 ativo (Travado nas threads 0 a 15 / 32MB L3)\n" : "") +
+                        (highPriority ? "✔ Prioridade de Processo Alta & Temporizador 0.5ms\n" : "") +
+                        "✔ Inicialização segura bypass de anti-cheat (Token Explorer)!");
+                }
+                else
+                {
+                    ShowCheckModal("✖ FALHA AO INICIAR", $"Não foi possível iniciar o executável:\n{game.ExePath}");
+                }
+            }
+            finally { SetBusy(false); }
+        }
 
         // ==========================================
         // MÓDULO 5: LIMPEZA BLINDADA

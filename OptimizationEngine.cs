@@ -54,7 +54,7 @@ namespace ErrejotaMatrixOptimizer
 
         public event Action<LogEntry>? OnLog;
 
-        private void Log(string message, LogLevel level = LogLevel.Info)
+        public void Log(string message, LogLevel level = LogLevel.Info)
         {
             OnLog?.Invoke(new LogEntry(message, level));
         }
@@ -996,7 +996,7 @@ namespace ErrejotaMatrixOptimizer
         public async Task<NetworkMetrics> RunFullNetworkSpeedTestAsync()
         {
             Log("================================================================================", LogLevel.Header);
-            Log(">>> INICIANDO TESTE COMPLETO DE VELOCIDADE & ESTABILIDADE (DOWNLOAD / UPLOAD / PING / PERDA)", LogLevel.Header);
+            Log(">>> INICIANDO TESTE ULTRA MULTI-STREAM DE VELOCIDADE (GIGABIT CERTIFIED)", LogLevel.Header);
             Log("================================================================================", LogLevel.Header);
 
             var metrics = new NetworkMetrics();
@@ -1004,76 +1004,130 @@ namespace ErrejotaMatrixOptimizer
             await Task.Run(async () =>
             {
                 // 1. PING & PACKET LOSS
-                Log("[1/3] Medindo Latência e Perda de Pacotes (Cloudflare 1.1.1.1 & Google 8.8.8.8)...", LogLevel.Info);
-                int totalPackets = 10;
+                Log("[1/3] Medindo Latência Direta e Perda de Pacotes (Cloudflare Edge)...", LogLevel.Info);
+                int totalPackets = 8;
                 int successfulReplies = 0;
+                long minRtt = long.MaxValue;
                 long totalRtt = 0;
 
                 using (var pingSender = new Ping())
                 {
-                    string[] hosts = { "1.1.1.1", "8.8.8.8" };
+                    // Warm-up
+                    try { pingSender.Send("1.1.1.1", 1000); } catch { }
+
                     for (int i = 0; i < totalPackets; i++)
                     {
-                        string target = hosts[i % hosts.Length];
                         try
                         {
-                            var reply = pingSender.Send(target, 1200);
+                            var reply = pingSender.Send("1.1.1.1", 1000);
                             if (reply != null && reply.Status == IPStatus.Success)
                             {
                                 successfulReplies++;
                                 totalRtt += reply.RoundtripTime;
+                                if (reply.RoundtripTime < minRtt) minRtt = reply.RoundtripTime;
                             }
                         }
                         catch { }
-                        await Task.Delay(40);
+                        await Task.Delay(25);
                     }
                 }
 
                 int lost = totalPackets - successfulReplies;
                 metrics.PacketLossPercent = Math.Round((lost / (double)totalPackets) * 100.0, 1);
-                metrics.PingMs = successfulReplies > 0 ? Math.Round((double)totalRtt / successfulReplies, 1) : 0;
-                Log($"   ✔ Latência média: {metrics.PingMs} ms | Perda de pacotes: {metrics.PacketLossPercent}%", LogLevel.Success);
+                metrics.PingMs = (successfulReplies > 0 && minRtt != long.MaxValue) ? minRtt : (successfulReplies > 0 ? (long)Math.Round((double)totalRtt / successfulReplies) : 0);
+                Log($"   ✔ Latência Mínima (Ping): {metrics.PingMs} ms | Perda de pacotes: {metrics.PacketLossPercent}%", LogLevel.Success);
 
-                // 2. DOWNLOAD SPEED
-                Log("[2/3] Testando Velocidade Máxima de Download (CDN Gigabit Cloudflare)...", LogLevel.Info);
+                // 2. DOWNLOAD SPEED (MULTI-STREAM GIGABIT)
+                Log("[2/3] Testando Download Multi-Stream (Saturação em Paralelo 1 Gbps)...", LogLevel.Info);
                 try
                 {
-                    using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
-                    httpClient.DefaultRequestHeaders.Add("User-Agent", "ErreJotaMatrixOptimizer/2.5");
-                    var sw = Stopwatch.StartNew();
-                    byte[] data = await httpClient.GetByteArrayAsync("https://speed.cloudflare.com/__down?bytes=10485760"); // 10MB
-                    sw.Stop();
-                    double seconds = sw.Elapsed.TotalSeconds;
-                    if (seconds > 0.05)
+                    using var handler = new SocketsHttpHandler
                     {
-                        double bits = data.Length * 8.0;
+                        MaxConnectionsPerServer = 16,
+                        PooledConnectionLifetime = TimeSpan.FromMinutes(1)
+                    };
+                    using var httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) };
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "ErreJotaMatrixOptimizer/3.0");
+
+                    long totalBytesDownloaded = 0;
+                    int streams = 5;
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3.5)); // Amostragem de saturação de 3.5 segundos
+                    var sw = Stopwatch.StartNew();
+
+                    var tasks = Enumerable.Range(0, streams).Select(async _ =>
+                    {
+                        byte[] buffer = new byte[65536];
+                        try
+                        {
+                            using var response = await httpClient.GetAsync("https://speed.cloudflare.com/__down?bytes=50000000", HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                            using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
+                            int bytesRead;
+                            while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cts.Token)) > 0)
+                            {
+                                Interlocked.Add(ref totalBytesDownloaded, bytesRead);
+                            }
+                        }
+                        catch (OperationCanceledException) { }
+                        catch { }
+                    }).ToArray();
+
+                    await Task.WhenAll(tasks);
+                    sw.Stop();
+
+                    double seconds = sw.Elapsed.TotalSeconds;
+                    if (seconds > 0.1 && totalBytesDownloaded > 0)
+                    {
+                        double bits = totalBytesDownloaded * 8.0;
                         metrics.DownloadMbps = Math.Round((bits / seconds) / 1_000_000.0, 1);
-                        Log($"   ✔ Taxa de Download Medida: {metrics.DownloadMbps} Mbps", LogLevel.Success);
+                        Log($"   ✔ Taxa de Download Medida: {metrics.DownloadMbps} Mbps ({Math.Round(totalBytesDownloaded / 1048576.0, 1)} MB transferidos)", LogLevel.Success);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log($"   ⚠ Download test: {ex.Message} (Rede local funcional)", LogLevel.Warning);
+                    Log($"   ⚠ Download test: {ex.Message}", LogLevel.Warning);
                     metrics.DownloadMbps = 0;
                 }
 
-                // 3. UPLOAD SPEED
-                Log("[3/3] Testando Velocidade Máxima de Upload (Envio em Bloco)...", LogLevel.Info);
+                // 3. UPLOAD SPEED (MULTI-STREAM GIGABIT)
+                Log("[3/3] Testando Upload Multi-Stream (Saturação em Paralelo 1 Gbps)...", LogLevel.Info);
                 try
                 {
-                    using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
-                    httpClient.DefaultRequestHeaders.Add("User-Agent", "ErreJotaMatrixOptimizer/2.5");
-                    byte[] uploadPayload = new byte[2_500_000]; // 2.5 MB
-                    using var content = new ByteArrayContent(uploadPayload);
-                    var sw = Stopwatch.StartNew();
-                    var response = await httpClient.PostAsync("https://speed.cloudflare.com/__up", content);
-                    sw.Stop();
-                    double seconds = sw.Elapsed.TotalSeconds;
-                    if (seconds > 0.05 && response.IsSuccessStatusCode)
+                    using var handler = new SocketsHttpHandler
                     {
-                        double bits = uploadPayload.Length * 8.0;
+                        MaxConnectionsPerServer = 16,
+                        PooledConnectionLifetime = TimeSpan.FromMinutes(1)
+                    };
+                    using var httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) };
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "ErreJotaMatrixOptimizer/3.0");
+
+                    long totalBytesUploaded = 0;
+                    int uploadStreams = 4;
+                    byte[] uploadChunk = new byte[15_000_000]; // 15MB por stream (total 60MB)
+                    var sw = Stopwatch.StartNew();
+
+                    var uploadTasks = Enumerable.Range(0, uploadStreams).Select(async _ =>
+                    {
+                        try
+                        {
+                            using var content = new ByteArrayContent(uploadChunk);
+                            var resp = await httpClient.PostAsync("https://speed.cloudflare.com/__up", content);
+                            if (resp.IsSuccessStatusCode)
+                            {
+                                Interlocked.Add(ref totalBytesUploaded, uploadChunk.Length);
+                            }
+                        }
+                        catch { }
+                    }).ToArray();
+
+                    await Task.WhenAll(uploadTasks);
+                    sw.Stop();
+
+                    double seconds = sw.Elapsed.TotalSeconds;
+                    if (seconds > 0.1 && totalBytesUploaded > 0)
+                    {
+                        double bits = totalBytesUploaded * 8.0;
                         metrics.UploadMbps = Math.Round((bits / seconds) / 1_000_000.0, 1);
-                        Log($"   ✔ Taxa de Upload Medida: {metrics.UploadMbps} Mbps", LogLevel.Success);
+                        Log($"   ✔ Taxa de Upload Medida: {metrics.UploadMbps} Mbps ({Math.Round(totalBytesUploaded / 1048576.0, 1)} MB enviados)", LogLevel.Success);
                     }
                 }
                 catch (Exception ex)

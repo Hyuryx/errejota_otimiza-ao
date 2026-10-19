@@ -261,7 +261,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="ERREJOTA // MATRIX OPTIMIZER PRO" FontWeight="Bold" FontSize="14" Foreground="#00FF66"/>
                             <Border Background="#102619" BorderBrush="#00FF66" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="v1.0.0" FontSize="9" FontWeight="Bold" Foreground="#00FF66"/>
+                                <TextBlock Text="v1.1.0" FontSize="9" FontWeight="Bold" Foreground="#00FF66"/>
                             </Border>
                         </StackPanel>
                         <TextBlock Text="ELITE GAMER KERNEL &amp; ANTI-GARGALO ENGINE" FontSize="10" Foreground="#8B949E"/>
@@ -328,12 +328,12 @@
                             </Grid>
                         </RadioButton>
 
-                        <!-- 4. Lançador FiveM -->
+                        <!-- 4. Lançador Gamer Pro & FiveM -->
                         <RadioButton x:Name="NavLauncher" Style="{StaticResource SidebarNavButton}" Checked="Nav_Checked">
                             <Grid Width="185">
-                                <TextBlock Text="🎮 Lançador FiveM" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                                <TextBlock Text="🎮 Lançador Gamer Pro" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
                                 <Border x:Name="BadgeLauncher" HorizontalAlignment="Right" Background="#0C2530" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="3" Padding="5,1">
-                                    <TextBlock x:Name="TxtBadgeLauncher" Text="PRONTO" FontSize="9" FontWeight="Bold" Foreground="#00E5FF"/>
+                                    <TextBlock x:Name="TxtBadgeLauncher" Text="TURBO" FontSize="9" FontWeight="Bold" Foreground="#00E5FF"/>
                                 </Border>
                             </Grid>
                         </RadioButton>
@@ -744,29 +744,88 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- PAINEL 4: LANÇADOR FIVEM -->
+                <!-- PAINEL 4: LANÇADOR GAMER PRO & FIVEM -->
                 <ScrollViewer x:Name="TabLauncher" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <Border Background="#0C1522" BorderBrush="#00FF66" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,12">
+                        <!-- Banner Superior: Lançador Gamer Pro -->
+                        <Border Background="#0C1522" BorderBrush="#00FF66" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="🎮 LANÇADOR FIVEM COMPETITIVO (ZERO CRASH &amp; SENTINELA CCD0)" FontSize="15" FontWeight="Bold" Foreground="#00FF66"/>
-                                    <TextBlock Text="Inicia como usuário comum, esvazia memória RAM em espera e mantém uma thread sentinela que detecta a janela e força afinidade e prioridade instantânea." 
-                                               FontSize="11" Foreground="#8B949E" TextWrapping="Wrap" Margin="0,4,16,0"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="🎮 LANÇADOR GAMER PRO &amp; SENTINELA ZEN 3 CCD0" FontSize="15" FontWeight="Bold" Foreground="#00FF66"/>
+                                        <Border Background="#102E1B" BorderBrush="#00FF66" BorderThickness="1" CornerRadius="3" Padding="6,1" Margin="10,0,0,0">
+                                            <TextBlock Text="ZERO LATÊNCIA" FontSize="9" FontWeight="Bold" Foreground="#00FF66"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="Inicia qualquer jogo da Steam, Epic Games ou executável personalizado com esvaziamento total de cache da RAM, afinidade travada no CCD0 (32MB L3) e prioridade competitiva instantânea." 
+                                               FontSize="11" Foreground="#8B949E" TextWrapping="Wrap" Margin="0,0,16,0"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="INICIAR FIVEM AGORA" Style="{StaticResource CheatNeonButton}" FontSize="13" Padding="20,12" Click="BtnLaunchFivem_Click"/>
+                                
+                                <Button Grid.Column="1" Content="⚡ INICIAR FIVEM DIRETO" Style="{StaticResource CheatCyanButton}" FontSize="12" FontWeight="Bold" Padding="16,10" Click="BtnLaunchFivem_Click"/>
                             </Grid>
                         </Border>
 
+                        <!-- Card de Seleção de Jogo -->
+                        <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="🎯 SELECIONE O JOGO INSTALADO (STEAM / EPIC / CUSTOM):" FontWeight="Bold" FontSize="11" Foreground="#00E5FF"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Content="🔄 ATUALIZAR LISTA" Style="{StaticResource CheatDarkButton}" FontSize="10" Padding="8,3" Margin="0,0,6,0" Click="BtnRefreshGames_Click"/>
+                                        <Button Content="➕ ESCOLHER .EXE" Style="{StaticResource CheatDarkButton}" FontSize="10" Padding="8,3" Click="BtnBrowseCustomGame_Click"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Dropdown de Jogos -->
+                                <ComboBox x:Name="CboDetectedGames" Height="36" FontSize="12" FontWeight="SemiBold" 
+                                          Background="#0A0E17" Foreground="#00FF66" BorderBrush="#1F293D" BorderThickness="1" 
+                                          Padding="8,6" Margin="0,0,0,12" SelectionChanged="CboDetectedGames_SelectionChanged"/>
+
+                                <!-- Card com Detalhes do Jogo Selecionado e Configurações -->
+                                <Border Background="#090D14" BorderBrush="#1C273B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock x:Name="TxtSelectedGameName" Text="Nenhum jogo selecionado" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                                <Border x:Name="BadgeGamePlatform" Background="#162233" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="3" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock x:Name="TxtSelectedGamePlatform" Text="STEAM" FontSize="9" FontWeight="Bold" Foreground="#00E5FF"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock x:Name="TxtSelectedGamePath" Text="Caminho do executável..." FontSize="10" Foreground="#8B949E" TextTrimming="CharacterEllipsis" Margin="0,0,10,0"/>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="1" Content="🚀 DISPARAR JOGO OTIMIZADO" Style="{StaticResource CheatNeonButton}" FontSize="13" FontWeight="Bold" Padding="20,12" Click="BtnLaunchSelectedGame_Click"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Toggles de Otimizações Competitivas -->
+                                <TextBlock Text="PARÂMETROS DE OTIMIZAÇÃO COMPETITIVA:" FontSize="10" FontWeight="Bold" Foreground="#8B949E" Margin="0,0,0,6"/>
+                                <UniformGrid Columns="2" Margin="0,0,0,4">
+                                    <CheckBox x:Name="ChkOptCleanRam" Content="Esvaziar Cache RAM (2GB a 6GB livres antes de subir)" Style="{StaticResource CheatToggleSwitch}" IsChecked="True" Margin="0,0,6,8"/>
+                                    <CheckBox x:Name="ChkOptLockCcd0" Content="Travar Afinidade CCD0 Zen 3 (16 Threads / 32MB L3)" Style="{StaticResource CheatToggleSwitch}" IsChecked="True" Margin="6,0,0,8"/>
+                                    <CheckBox x:Name="ChkOptHighPriority" Content="Prioridade de Processo Alta &amp; Temporizador 0.5ms" Style="{StaticResource CheatToggleSwitch}" IsChecked="True" Margin="0,0,6,0"/>
+                                    <CheckBox x:Name="ChkOptSafeBypass" Content="Lançamento Não-Elevado (Anti-Cheat Friendly)" Style="{StaticResource CheatToggleSwitch}" IsChecked="True" Margin="6,0,0,0"/>
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card Educativo de Benefícios -->
                         <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="6" Padding="14">
                             <StackPanel>
-                                <TextBlock Text="ℹ️ Por que usar este lançador em vez do atalho tradicional?" FontWeight="Bold" FontSize="13" Foreground="#00E5FF"/>
-                                <TextBlock Text="1. Elimina erros de inicialização onde o FiveM reclama de estar rodando como administrador;&#x0a;2. Libera de 2GB a 6GB de arquivos de cache em espera da RAM antes do jogo subir;&#x0a;3. Conecta suas threads diretamente ao CCD0 com cache unificado de 32MB sem engasgos de micro-stutter." 
-                                           FontSize="11" Foreground="#8B949E" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="ℹ️ VANTAGENS EXCLUSIVAS DO LANÇADOR ERREJOTA MATRIX:" FontWeight="Bold" FontSize="12" Foreground="#00E5FF"/>
+                                <TextBlock Text="1. Anti-Cheat Seguro: Inicia via token normal do Explorer, impedindo que EasyAntiCheat, BattlEye, Ricochet e FiveM travem ou bloqueiem sua conta por 'processo elevado';&#x0a;2. Zero Cache de RAM: Purifica páginas de espera da memória física antes da engine do jogo alocar os buffers gráficos;&#x0a;3. Sentinela CCD0 de Alta Performance: Mantém uma thread monitorando a criação da janela e força a afinidade no bloco de núcleos de menor latência da CPU;&#x0a;4. Frametime Estável: Elimina stutterings e picos de micro-congelamento em tiroteios intensos e renderizações de mapa." 
+                                           FontSize="11" Foreground="#8B949E" TextWrapping="Wrap" LineHeight="17" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
