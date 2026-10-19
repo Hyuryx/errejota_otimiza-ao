@@ -50,11 +50,12 @@ namespace ErrejotaMatrixOptimizer
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            string verStr = UpdateManager.CurrentVersion.ToString(3);
-            TxtHeaderVersion.Text = $"v{verStr}";
-            TxtFooterVersion.Text = $"{verStr} (Release)";
+            string verStr = UpdateManager.CurrentVersionString;
+            TxtHeaderVersion.Text = verStr;
+            TxtFooterVersion.Text = $"{UpdateManager.CurrentVersionNumber} (Release)";
+            if (TxtCurrentVersionInModal != null) TxtCurrentVersionInModal.Text = verStr;
 
-            AppendLog($"⚡ INICIANDO ERREJOTA MATRIX OPTIMIZER PRO v{verStr}...");
+            AppendLog($"⚡ INICIANDO ERREJOTA MATRIX OPTIMIZER PRO {verStr}...");
             AppendLog("Varrendo hardware, integridade de rede 1 Gbps, jogos instalados e subsistemas...");
             await RefreshHardwareDataAsync();
             await LoadDetectedGamesAsync();
@@ -1083,9 +1084,9 @@ namespace ErrejotaMatrixOptimizer
             SetBusy(true, "CONSULTANDO CANAL DE ATUALIZAÇÕES...");
             try
             {
-                AppendLog("Verificando atualizações no canal oficial ErreJota Matrix (v1.0.0)...");
+                AppendLog($"Verificando atualizações no canal oficial ErreJota Matrix ({UpdateManager.CurrentVersionString})...");
                 
-                // 1. Tentar checar no servidor online oficial
+                // 1. Tentar checar no servidor online oficial (API GitHub + version.json)
                 var update = await _updateManager.CheckForUpdateAsync();
 
                 // 2. Fallback inteligente: se existir um version.json local para testes/customização
@@ -1095,9 +1096,13 @@ namespace ErrejotaMatrixOptimizer
                     {
                         string localJson = await File.ReadAllTextAsync("version.json");
                         var localInfo = System.Text.Json.JsonSerializer.Deserialize<UpdateInfo>(localJson, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        if (localInfo != null && Version.TryParse(localInfo.Version, out var localVer) && localVer > UpdateManager.CurrentVersion)
+                        if (localInfo != null)
                         {
-                            update = localInfo;
+                            var localVer = UpdateManager.ParseVersionSafe(localInfo.Version);
+                            if (localVer > UpdateManager.CurrentVersion)
+                            {
+                                update = localInfo;
+                            }
                         }
                     }
                     catch { }
@@ -1108,6 +1113,7 @@ namespace ErrejotaMatrixOptimizer
                     _pendingUpdate = update;
                     TxtNewVersionBadge.Text = $"v{update.Version} DISPONÍVEL";
                     TxtNewVersionTarget.Text = $"v{update.Version}";
+                    if (TxtCurrentVersionInModal != null) TxtCurrentVersionInModal.Text = UpdateManager.CurrentVersionString;
                     TxtUpdateDate.Text = string.IsNullOrWhiteSpace(update.ReleaseDate) ? $"Data: {DateTime.Now:dd/MM/yyyy}" : $"Data: {update.ReleaseDate}";
                     TxtUpdateChangelog.Text = string.IsNullOrWhiteSpace(update.Changelog) ? "• Melhorias gerais e otimizações de estabilidade." : update.Changelog;
 
@@ -1118,17 +1124,17 @@ namespace ErrejotaMatrixOptimizer
                     ModalStatusCheck.Visibility = Visibility.Collapsed;
                     ModalRestorePoint.Visibility = Visibility.Collapsed;
                     ModalAntiBottleneck.Visibility = Visibility.Collapsed;
-                    AppendLog($"[ATUALIZADOR] Nova versão v{update.Version} encontrada e disponível para download!");
+                    AppendLog($"[ATUALIZADOR] Nova versão v{update.Version} encontrada e pronta para download!");
                 }
                 else
                 {
                     ShowCheckModal("🚀 SISTEMA DE ATUALIZAÇÕES ERREJOTA",
-                        "• VERSÃO INSTALADA: v1.0.0 (Release Oficial)\n" +
+                        $"• VERSÃO INSTALADA: {UpdateManager.CurrentVersionString} (Release Oficial)\n" +
                         "• STATUS: Você já está utilizando a versão mais recente!\n\n" +
                         "✔ Kernel Gamer 2026 sincronizado\n" +
                         "✔ Motor Anti-Gargalo FiveM atualizado\n" +
                         "✔ Telemetria de Rede e Ponto de Restauração ativos\n\n" +
-                        "Assim que você publicar uma nova versão online (ex: v1.0.1), o aplicativo notificará e atualizará automaticamente com 1 clique.");
+                        "Assim que você publicar uma nova versão online no GitHub, o aplicativo notificará e atualizará automaticamente com 1 clique.");
                 }
             }
             catch (Exception ex)
@@ -1156,7 +1162,7 @@ namespace ErrejotaMatrixOptimizer
             TxtUpdateProgressPercent.Text = "0%";
             TxtUpdateProgressLabel.Text = "Iniciando download da versão v" + _pendingUpdate.Version + "...";
 
-            string currentExePath = Process.GetCurrentProcess().MainModule?.FileName ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ErreJota_Matrix_Optimizer_Pro.exe");
+            string currentExePath = Environment.ProcessPath ?? (Process.GetCurrentProcess().MainModule?.FileName ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ErreJota_Matrix_Optimizer_Pro.exe"));
 
             AppendLog($"[ATUALIZADOR] Baixando v{_pendingUpdate.Version} de {_pendingUpdate.DownloadUrl}...");
             bool ok = await _updateManager.DownloadAndApplyUpdateAsync(_pendingUpdate.DownloadUrl, currentExePath);

@@ -1330,7 +1330,7 @@
                             <Grid Margin="0,0,0,8">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="Versão Atual: " FontSize="11" Foreground="#8B949E"/>
-                                    <TextBlock Text="v1.0.0" FontWeight="Bold" FontSize="11" Foreground="#FF5555" Margin="0,0,12,0"/>
+                                    <TextBlock x:Name="TxtCurrentVersionInModal" Text="v1.1.0" FontWeight="Bold" FontSize="11" Foreground="#FF5555" Margin="0,0,12,0"/>
                                     <TextBlock Text="Nova Versão: " FontSize="11" Foreground="#8B949E"/>
                                     <TextBlock x:Name="TxtNewVersionTarget" Text="v1.0.1" FontWeight="Bold" FontSize="11" Foreground="#00FF66"/>
                                 </StackPanel>
