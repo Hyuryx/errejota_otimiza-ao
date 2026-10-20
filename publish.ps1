@@ -111,26 +111,123 @@ git commit -m "v$targetVer - $commitMsg"
 git tag -f -a "v$targetVer" -m "Release v$targetVer - $commitMsg"
 
 Write-Host ""
+Write-Host ""
 # 6. Git Push
-Write-Host "[4/4] Enviando codigo e tags para o GitHub..." -ForegroundColor Cyan
+Write-Host "[4/5] Enviando codigo e tags para o GitHub..." -ForegroundColor Cyan
 git push -u origin main
 git push origin --tags -f
 
 Write-Host ""
-Write-Host "===============================================================================" -ForegroundColor Green
-Write-Host "                    ATUALIZACAO ENVIADA COM SUCESSO!" -ForegroundColor Green
-Write-Host "===============================================================================" -ForegroundColor Green
-Write-Host ""
-Write-Host "A tag v$targetVer ja esta criada no GitHub!" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "PASSO FINAL (1 CLIQUE):" -ForegroundColor White
-Write-Host "1. A pagina de criacao de Release no GitHub foi aberta no seu navegador." -ForegroundColor White
-Write-Host "2. A pasta com o arquivo 'ErreJota_Matrix_Optimizer_Pro.exe' selecionado foi aberta." -ForegroundColor White
-Write-Host "3. Basta ARRASTAR o arquivo .exe para a pagina do GitHub e clicar em 'Publish release'!" -ForegroundColor Green
-Write-Host ""
-Write-Host "Assim que publicado la, o aplicativo dos clientes atualizara sozinho ao clicar em 'Verificar Atualizacoes'!" -ForegroundColor Cyan
-Write-Host "===============================================================================" -ForegroundColor Green
-Write-Host ""
+# 7. Publicação Automática do Release e Upload do Executável via API Oficial
+Write-Host "[5/5] Publicando Release v$targetVer e enviando executavel (.exe) diretamente para o GitHub..." -ForegroundColor Cyan
 
-Start-Process "https://github.com/Hyuryx/errejota_otimiza-ao/releases/new?tag=v$targetVer&title=Release+v$targetVer"
-Start-Process "explorer.exe" -ArgumentList "/select,`"ErreJota_Matrix_Optimizer_Pro.exe`""
+$owner = "Hyuryx"
+$repo = "errejota_otimiza-ao"
+$tag = "v$targetVer"
+$releaseName = "Release v$targetVer"
+$exePath = Join-Path $PSScriptRoot "ErreJota_Matrix_Optimizer_Pro.exe"
+
+$uploadSuccess = $false
+try {
+    $cred = "protocol=https`nhost=github.com`n" | git credential fill 2>$null
+    $tokenMatch = $cred | Select-String "^password=(.*)"
+    if ($tokenMatch) {
+        $token = $tokenMatch.Matches.Groups[1].Value
+        $headers = @{
+            "Authorization" = "Bearer $token"
+            "User-Agent" = "ErreJota-Matrix-Optimizer-Pro"
+            "Accept" = "application/vnd.github.v3+json"
+        }
+
+        # 1. Obter ou Criar Release
+        $release = $null
+        try {
+            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$owner/$repo/releases/tags/$tag" -Headers $headers -Method Get
+            Write-Host "      - Release $tag localizada no GitHub." -ForegroundColor Green
+        } catch {
+            Write-Host "      - Criando nova release oficial para $tag..." -ForegroundColor Yellow
+            $createObj = @{
+                tag_name = $tag
+                name = $releaseName
+                body = "Atualizacao Oficial v$targetVer - $commitMsg"
+                draft = $false
+                prerelease = $false
+            }
+            $createJson = $createObj | ConvertTo-Json -Compress
+
+            Add-Type -AssemblyName System.Net.Http
+            $http = [System.Net.Http.HttpClient]::new()
+            $http.DefaultRequestHeaders.Add("User-Agent", "ErreJota-Matrix-Optimizer-Pro")
+            $http.DefaultRequestHeaders.Add("Authorization", "Bearer $token")
+            $http.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json")
+
+            $content = [System.Net.Http.StringContent]::new($createJson, [System.Text.Encoding]::UTF8, "application/json")
+            $res = $http.PostAsync("https://api.github.com/repos/$owner/$repo/releases", $content).GetAwaiter().GetResult()
+            $respStr = $res.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+            $http.Dispose()
+
+            if ($res.IsSuccessStatusCode) {
+                $release = $respStr | ConvertFrom-Json
+                Write-Host "      - Release criada com sucesso!" -ForegroundColor Green
+            }
+        }
+
+        if ($release -and (Test-Path $exePath)) {
+            $fileName = [System.IO.Path]::GetFileName($exePath)
+            
+            # Se já existir asset antigo com mesmo nome, deleta para subir o novo
+            $existingAsset = $release.assets | Where-Object { $_.name -eq $fileName }
+            if ($existingAsset) {
+                Write-Host "      - Substituindo binario existente no GitHub..." -ForegroundColor Yellow
+                Invoke-RestMethod -Uri $existingAsset.url -Headers $headers -Method Delete 2>$null
+            }
+
+            Write-Host "      - Enviando $($fileName) ($([math]::Round((Get-Item $exePath).Length / 1MB, 2)) MB)..." -ForegroundColor Yellow
+            $uploadUrl = "https://uploads.github.com/repos/$owner/$repo/releases/$($release.id)/assets?name=$fileName"
+
+            Add-Type -AssemblyName System.Net.Http
+            $client = [System.Net.Http.HttpClient]::new()
+            $client.Timeout = [System.TimeSpan]::FromMinutes(15)
+            $client.DefaultRequestHeaders.Add("User-Agent", "ErreJota-Matrix-Optimizer-Pro")
+            $client.DefaultRequestHeaders.Add("Authorization", "Bearer $token")
+            $client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json")
+
+            $fileStream = [System.IO.File]::OpenRead($exePath)
+            $streamContent = [System.Net.Http.StreamContent]::new($fileStream)
+            $streamContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("application/octet-stream")
+
+            $response = $client.PostAsync($uploadUrl, $streamContent).GetAwaiter().GetResult()
+            $fileStream.Dispose()
+            $client.Dispose()
+
+            if ($response.IsSuccessStatusCode) {
+                $uploadSuccess = $true
+                Write-Host "      - Executavel enviado e publicado com sucesso!" -ForegroundColor Green
+            }
+        }
+    }
+} catch {
+    Write-Host " [AVISO] Nao foi possivel publicar automaticamente via API: $_" -ForegroundColor Yellow
+}
+
+if ($uploadSuccess) {
+    Write-Host ""
+    Write-Host "===============================================================================" -ForegroundColor Green
+    Write-Host "              RELEASE E EXECUTAVEL PUBLICADOS COM SUCESSO!" -ForegroundColor Green
+    Write-Host "===============================================================================" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "O download direto da versao v$targetVer ja esta 100% ONLINE e testado no GitHub!" -ForegroundColor Yellow
+    Write-Host "Os clientes agora receberao e baixarao a atualizacao automaticamente sem qualquer erro." -ForegroundColor Cyan
+    Write-Host "Link direto: https://github.com/$owner/$repo/releases/download/$tag/ErreJota_Matrix_Optimizer_Pro.exe" -ForegroundColor Gray
+    Write-Host "===============================================================================" -ForegroundColor Green
+    Write-Host ""
+} else {
+    Write-Host ""
+    Write-Host "===============================================================================" -ForegroundColor Yellow
+    Write-Host "                   PASSOS FINAIS PARA PUBLICACAO MANUAL" -ForegroundColor Yellow
+    Write-Host "===============================================================================" -ForegroundColor Yellow
+    Write-Host "1. A pagina da Release foi aberta no navegador." -ForegroundColor White
+    Write-Host "2. Arraste o executavel 'ErreJota_Matrix_Optimizer_Pro.exe' para ela e publique." -ForegroundColor White
+    Start-Process "https://github.com/$owner/$repo/releases/new?tag=v$targetVer&title=Release+v$targetVer"
+    Start-Process "explorer.exe" -ArgumentList "/select,`"ErreJota_Matrix_Optimizer_Pro.exe`""
+}

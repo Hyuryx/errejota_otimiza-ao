@@ -203,8 +203,25 @@ namespace ErrejotaMatrixOptimizer
 
                         if (remoteVer > CurrentVersion)
                         {
-                            info.Version = $"{remoteVer.Major}.{remoteVer.Minor}.{remoteVer.Build}";
-                            return info;
+                            // 1. Tenta a URL original configurada
+                            if (await IsUrlReachableAsync(info.DownloadUrl))
+                            {
+                                info.Version = $"{remoteVer.Major}.{remoteVer.Minor}.{remoteVer.Build}";
+                                return info;
+                            }
+
+                            // 2. Tenta variação com .0 na tag (ex: v1.2.1.0)
+                            string altUrl = $"https://github.com/Hyuryx/errejota_otimiza-ao/releases/download/v{remoteVer.Major}.{remoteVer.Minor}.{remoteVer.Build}.0/ErreJota_Matrix_Optimizer_Pro.exe";
+                            if (await IsUrlReachableAsync(altUrl))
+                            {
+                                info.DownloadUrl = altUrl;
+                                info.Version = $"{remoteVer.Major}.{remoteVer.Minor}.{remoteVer.Build}";
+                                return info;
+                            }
+
+                            // Se o executável ainda não foi publicado na Release no GitHub (link 404),
+                            // não abre janela de erro de download para o usuário
+                            return null;
                         }
                     }
                 }
@@ -215,6 +232,23 @@ namespace ErrejotaMatrixOptimizer
             }
 
             return null;
+        }
+
+        public static async Task<bool> IsUrlReachableAsync(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return false;
+            try
+            {
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                client.DefaultRequestHeaders.Add("User-Agent", "ErreJota-Matrix-Optimizer-Pro");
+                using var req = new HttpRequestMessage(HttpMethod.Head, url);
+                using var res = await client.SendAsync(req);
+                return res.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public async Task<bool> DownloadAndApplyUpdateAsync(string downloadUrl, string targetExePath)
@@ -228,23 +262,52 @@ namespace ErrejotaMatrixOptimizer
                 {
                     client.Timeout = TimeSpan.FromMinutes(10);
                     client.DefaultRequestHeaders.Add("User-Agent", "ErreJota-Matrix-Optimizer-Pro");
-                    using var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
-                    response.EnsureSuccessStatusCode();
 
-                    long totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                    using var contentStream = await response.Content.ReadAsStreamAsync();
-                    using var fileStream = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-
-                    byte[] buffer = new byte[81920];
-                    long totalRead = 0;
-                    int bytesRead;
-
-                    while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    HttpResponseMessage? response = null;
+                    try
                     {
-                        await fileStream.WriteAsync(buffer, 0, bytesRead);
-                        totalRead += bytesRead;
-                        double pct = totalBytes > 0 ? (double)totalRead / totalBytes * 100.0 : 0.0;
-                        OnDownloadProgress?.Invoke(totalRead, totalBytes, pct);
+                        response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                    }
+                    catch { }
+
+                    // Se a URL principal falhar (ex: 404), tenta fallback com tag .0
+                    if (response == null || !response.IsSuccessStatusCode)
+                    {
+                        response?.Dispose();
+                        string altUrl = downloadUrl.Replace($"/v{CurrentVersion.Major}.{CurrentVersion.Minor}.{CurrentVersion.Build}/", $"/v{CurrentVersion.Major}.{CurrentVersion.Minor}.{CurrentVersion.Build}.0/");
+                        if (altUrl != downloadUrl)
+                        {
+                            try
+                            {
+                                response = await client.GetAsync(altUrl, HttpCompletionOption.ResponseHeadersRead);
+                            }
+                            catch { }
+                        }
+                    }
+
+                    if (response == null || !response.IsSuccessStatusCode)
+                    {
+                        response?.Dispose();
+                        return false;
+                    }
+
+                    using (response)
+                    {
+                        long totalBytes = response.Content.Headers.ContentLength ?? -1L;
+                        using var contentStream = await response.Content.ReadAsStreamAsync();
+                        using var fileStream = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+
+                        byte[] buffer = new byte[81920];
+                        long totalRead = 0;
+                        int bytesRead;
+
+                        while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                        {
+                            await fileStream.WriteAsync(buffer, 0, bytesRead);
+                            totalRead += bytesRead;
+                            double pct = totalBytes > 0 ? (double)totalRead / totalBytes * 100.0 : 0.0;
+                            OnDownloadProgress?.Invoke(totalRead, totalBytes, pct);
+                        }
                     }
                 }
 
